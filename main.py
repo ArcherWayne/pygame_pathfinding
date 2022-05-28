@@ -1,20 +1,64 @@
+from urllib.parse import scheme_chars
 from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
+from pathfinding.core.diagonal_movement import DiagonalMovement
 import pygame, sys, time
-import setting
 from debug import debug
 
 # general setup --------------------------------------------------------------------------------------------- #
+# color setup
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+# 1是可以通过 0是不可以通过
+matrix = [
+	[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+	[0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0],
+	[0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+	[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+	[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
+	[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
+	[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0],
+	[0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+	[0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
+	[0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+]
+
+# matrix = [
+#     [0,2,0,4],
+#     [5,6,7,8]
+# ]
+
+black_surf = pygame.Surface((30, 30))
+black_surf.fill(BLACK)
+white_surf = pygame.Surface((30, 30))
+white_surf.fill(WHITE)
+
 ## pygame setup
 pygame.init()
-screen = pygame.display.set_mode(setting.window_size)
-
-# pygame.display.set_caption('window_name')
-# pygame.display.set_icon(pygame.image.load('assets/blade game.png'))
-# background_surface = pygame.transform.scale(
-#     pygame.image.load('assets/background/ground.png').convert(), (setting.WIN_WIDTH, setting.WIN_HEIGTH))
-# background_rect = background_surface.get_rect(center=(setting.WIN_WIDTH / 2, setting.WIN_HEIGTH / 2))
-# clock = pygame.time.Clock()
-# font = pygame.font.Font('assets/font/Pixeltype.ttf', 50)
+clock = pygame.time.Clock()
+screen = pygame.display.set_mode((900,900))
+pygame.display.set_caption('pathfinding_snowfield')
 
 ## varibles setup
 game_active = True
@@ -25,6 +69,19 @@ game_active = True
 # group setup ----------------------------------------------------------------------------------------------- #
 all_sprites = pygame.sprite.Group()
 collision_sprites = pygame.sprite.Group()
+
+# functions ------------------------------------------------------------------------------------------------- #
+def draw_background(matrix, white_surf, black_surf):
+
+    for row in range(len(matrix)):
+        for col in range(len(matrix[row])):
+            if matrix[row][col] == 0: # 不可以通过, 涂黑
+                screen.blit(black_surf, (row*30, col*30))
+            if matrix[row][col] != 0: # 可以通过, 涂白
+                screen.blit(white_surf, (row*30, col*30))
+
+            pass
+
 
 # main ------------------------------------------------------------------------------------------------------ #
 def main():
@@ -42,10 +99,11 @@ def main():
                 sys.exit()
 
         if game_active:
-            screen.fill(setting.WHITE)
-            # screen.blit(background_surface, background_rect)
+            screen.fill(WHITE)
+            draw_background(matrix, white_surf, black_surf)
             all_sprites.update()
             all_sprites.draw(screen)
+            debug(pygame.mouse.get_pos())
 
 
         pygame.display.update()

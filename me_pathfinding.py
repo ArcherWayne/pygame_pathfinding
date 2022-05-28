@@ -5,7 +5,7 @@ from pathfinding.core.diagonal_movement import DiagonalMovement
 matrix = [
     [1, 1, 1, 1, 1, 1],
     [1, 0, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1]
+    [1, 1, 1, 1, 1, 1], 
 ]
 
 # 1. create a grid
@@ -16,6 +16,7 @@ start = grid.node(0, 0)
 end = grid.node(5, 2)
 
 # 3. create a finder with a movement style
+# 此处是创建了一个实例
 finder = AStarFinder(diagonal_movement=DiagonalMovement.always)
 
 # 4. use the finder to find the path
