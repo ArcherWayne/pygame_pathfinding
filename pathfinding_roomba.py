@@ -29,7 +29,7 @@ class Pathfinder: # pathfinder 在这里是一个功能, 这个类的作用就�
 			rect = pygame.Rect((col * 32,row * 32),(32,32))
 			screen.blit(self.select_surf,rect)
 
-	def create_path(self):
+	def create_path(self): # 第一个功能, 按下鼠标后开始执行
 
 		# start
 		start_x, start_y = self.roomba.sprite.get_coord()
