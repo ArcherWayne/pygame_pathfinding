@@ -1,12 +1,9 @@
-import re
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 from pathfinding.core.diagonal_movement import DiagonalMovement
 import pygame
 import sys
 import time
-
-from toml import TomlDecodeError
 from debug import debug
 
 # general setup --------------------------------------------------------------------------------------------- #
@@ -22,8 +19,7 @@ white_surf.fill(WHITE)
 
 # 1是可以通过 0是不可以通过
 matrix = [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -60,6 +56,8 @@ pygame.init()
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode((900, 900))
 pygame.display.set_caption('pathfinding_snowfield')
+enemy_timer = pygame.USEREVENT + 1
+pygame.time.set_timer(enemy_timer, 1000)
 
 # varibles setup
 game_active = True
@@ -80,14 +78,19 @@ class Pathfinder: # pathfinder 在这里是一个功能, 这个类的作用就�
 
         # pathfinding
         self.path = []
+        self.path_enemy_1 = []
 
         # player
         self.player = pygame.sprite.GroupSingle(player(self.empty_path))
+        # self.player = player(self.empty_path)
 
         # enemy
-        self.enemy_1 = pygame.sprite.Group(Enemy(self.empty_path, (825, 75)))
-        self.enemy_2 = pygame.sprite.Group(Enemy(self.empty_path, (75, 825)))
-        self.enemy_3 = pygame.sprite.Group(Enemy(self.empty_path, (825, 825)))
+        self.enemy_group = pygame.sprite.Group()
+        self.enemy_1 = Enemy(self.empty_path, (825+1, 75))
+        self.enemy_2 = Enemy(self.empty_path, (75+1, 825))
+        self.enemy_3 = Enemy(self.empty_path, (825+1, 825))
+        self.enemy_group.add(self.enemy_1, self.enemy_2, self.enemy_3)
+
 
     def empty_path(self):
         self.path = []
@@ -121,22 +124,27 @@ class Pathfinder: # pathfinder 在这里是一个功能, 这个类的作用就�
             self.player.sprite.set_path(self.path)  # 将生成的path传入player
 
     def create_path_enemy(self): # 第一个功能, 按下鼠标后开始执行
-        # FIXME: 
-        # start
-        start_x, start_y = self.player.sprite.get_coord() # 获得player位置对应处的矩阵索引
-        start = self.grid.node(start_x,start_y)
+        print(self.enemy_group.sprites())
+        # FIXME: create_path_enemy
+        for enemy in self.enemy_group.sprites():
+            # start
+            start_x, start_y = enemy.get_coord() # 获得player位置对应处的矩阵索引
+            start = self.grid.node(start_x,start_y)
 
-        # end
-        mouse_pos = pygame.mouse.get_pos()
-        end_x,end_y =  mouse_pos[0] // 30, mouse_pos[1] // 30   # 和上面获得player位置的带马基本相同
-        end = self.grid.node(end_x,end_y) 
+            # end
+            # mouse_pos = pygame.mouse.get_pos()
+            # debug(self.rect.x, info_name='player.rect.x', y =30)
+            # end_x, end_y = self.player.pos[0]//30, self.player.pos[1]//30
+            end_x, end_y = self.player.sprite.get_coord()
+            # end_x,end_y =  mouse_pos[0] // 30, mouse_pos[1] // 30   # 和上面获得player位置的带马基本相同
+            end = self.grid.node(end_x,end_y) 
 
-        # path
-        if start_x != end_x or start_y != end_y:
-            finder = AStarFinder(diagonal_movement = DiagonalMovement.always)
-            self.path,_ = finder.find_path(start,end,self.grid)
-            self.grid.cleanup()
-            self.player.sprite.set_path(self.path)  # 将生成的path传入player
+            # path
+            if start_x != end_x or start_y != end_y:
+                finder = AStarFinder(diagonal_movement = DiagonalMovement.always)
+                self.path_enemy,_ = finder.find_path(start,end,self.grid)
+                self.grid.cleanup()
+                enemy.set_path(self.path_enemy)  # 将生成的path传入enemy
 
     def update(self, dt):
         self.draw_active_cell()
@@ -144,12 +152,9 @@ class Pathfinder: # pathfinder 在这里是一个功能, 这个类的作用就�
         # player updating and drawing
         self.player.update(dt)
         self.player.draw(screen)
-        self.enemy_1.update(dt)
-        self.enemy_1.draw(screen)
-        self.enemy_2.update(dt)
-        self.enemy_2.draw(screen)
-        self.enemy_3.update(dt)
-        self.enemy_3.draw(screen)
+        # FIXME: use loops to update the enemies
+        self.enemy_group.update(dt)
+        self.enemy_group.draw(screen)
 
 class player(pygame.sprite.Sprite):
     def __init__(self,empty_path):
@@ -232,8 +237,8 @@ class player(pygame.sprite.Sprite):
         self.check_collisions()
         self.reposition_player()
         self.draw_path()
-        debug(self.rect.topleft, info_name='player.rect.topleft', y =30)
-        debug(self.path, y = 50, info_name='self.path')
+        # debug(self.rect.x, info_name='player.rect.x', y =30)
+        # debug(self.path, y = 50, info_name='self.path')
         self.old_rect = self.rect.copy() 
 
 class Enemy(pygame.sprite.Sprite):
@@ -327,11 +332,12 @@ def main():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pathfinder.create_path()
 
+            if event.type == enemy_timer:
+                pathfinder.create_path_enemy()
+
         if game_active:
             screen.fill(WHITE)
             draw_background(matrix, white_surf, black_surf)
-            debug(pygame.mouse.get_pos(), info_name='mouse_pos')
-            
             pathfinder.update(dt)
 
         pygame.display.update()
