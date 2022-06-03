@@ -125,7 +125,6 @@ class Pathfinder: # pathfinder 在这里是一个功能, 这个类的作用就�
 
     def create_path_enemy(self): # 第一个功能, 按下鼠标后开始执行
         print(self.enemy_group.sprites())
-        # FIXME: create_path_enemy
         for enemy in self.enemy_group.sprites():
             # start
             start_x, start_y = enemy.get_coord() # 获得player位置对应处的矩阵索引
@@ -152,7 +151,6 @@ class Pathfinder: # pathfinder 在这里是一个功能, 这个类的作用就�
         # player updating and drawing
         self.player.update(dt)
         self.player.draw(screen)
-        # FIXME: use loops to update the enemies
         self.enemy_group.update(dt)
         self.enemy_group.draw(screen)
 
